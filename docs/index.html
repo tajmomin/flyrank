@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catching Content Decline Before It Shows Up in the Numbers — a FlyRank ML capstone</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#161a22; --sub:#5a6472; --line:#e3e6ea; --bg:#fdfdfb; --accent:#2563eb;
+    --accent-dim:#eef2ff; --tag-bg:#f4f5f7; --good:#0f766e; --warn:#b45309;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink)}
+  body{font:17px/1.62 'Source Serif 4',Georgia,serif; padding:0 0 80px}
+  a{color:var(--accent); text-decoration:none; border-bottom:1px solid rgba(37,99,235,.35)}
+  a:hover{border-bottom-color:var(--accent)}
+  code, .mono{font-family:'Space Mono',ui-monospace,monospace; font-size:.92em}
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px}
+
+  header.top{border-bottom:2px solid var(--ink); padding:40px 0 26px; margin-bottom:6px}
+  .venue{font:600 12px/1.4 Inter,sans-serif; letter-spacing:.14em; text-transform:uppercase; color:var(--sub); margin:0 0 14px}
+  h1{font:700 30px/1.28 'Source Serif 4',Georgia,serif; margin:0 0 12px; letter-spacing:-.01em}
+  .byline{font:14px/1.5 Inter,sans-serif; color:var(--sub); margin:0}
+  .byline b{color:var(--ink)}
+
+  section{margin:38px 0}
+  h2{font:700 21px/1.3 'Source Serif 4',Georgia,serif; margin:0 0 14px; color:#0d2a5e;
+     border-bottom:1px solid var(--line); padding-bottom:8px}
+  h3{font:700 16px/1.35 'Source Serif 4',Georgia,serif; margin:20px 0 8px}
+  p{margin:0 0 14px; text-align:justify; hyphens:auto}
+  ul, ol{margin:0 0 14px; padding-left:26px}
+  li{margin-bottom:6px}
+
+  .abstract{background:var(--tag-bg); border:1px solid var(--line); border-radius:10px; padding:20px 22px; margin:18px 0 30px}
+  .abstract h3{margin-top:0; font:700 12px Inter,sans-serif; letter-spacing:.1em; text-transform:uppercase; color:var(--sub)}
+  .abstract p{margin-bottom:0; text-align:left}
+
+  .callout{border-left:3px solid var(--accent); background:var(--accent-dim); padding:12px 16px;
+            border-radius:0 6px 6px 0; font:15px/1.55 Inter,sans-serif; margin:16px 0}
+  .callout.warn{border-left-color:var(--warn); background:#fff7ed}
+  .callout.good{border-left-color:var(--good); background:#f0fdfa}
+  .callout b{font-weight:700}
+
+  figure{margin:20px 0}
+  figure img{width:100%; display:block; border:1px solid var(--line); border-radius:8px}
+  figcaption{font:13px/1.5 Inter,sans-serif; color:var(--sub); margin-top:8px; text-align:center}
+
+  table{width:100%; border-collapse:collapse; margin:16px 0; font:14px/1.5 Inter,sans-serif}
+  th, td{border:1px solid var(--line); padding:8px 10px; text-align:right}
+  th:first-child, td:first-child{text-align:left}
+  th{background:var(--tag-bg); font-weight:700}
+  tr.hl td{background:#eef9f6; font-weight:700}
+  .rate{color:var(--sub); font-size:12px}
+
+  .tags{display:flex; flex-wrap:wrap; gap:8px; margin:10px 0 18px; font:12px/1 Inter,sans-serif}
+  .tag{background:var(--tag-bg); border:1px solid var(--line); border-radius:999px; padding:5px 12px; color:var(--sub)}
+
+  footer.foot{margin-top:60px; padding-top:22px; border-top:1px solid var(--line);
+              font:13px/1.6 Inter,sans-serif; color:var(--sub); text-align:center}
+
+  .toc{font:14px/1.7 Inter,sans-serif; columns:2; column-gap:24px}
+  .toc a{border-bottom:none; color:var(--ink)}
+  .toc a:hover{color:var(--accent)}
+
+  @media (max-width:600px){
+    h1{font-size:24px} h2{font-size:19px} .toc{columns:1}
+    table{font-size:12.5px}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <p class="venue">FlyRank ML Internship &middot; Capstone Research Paper</p>
+    <h1>Catching Content Decline Before It Shows Up in the Numbers</h1>
+    <p class="byline">A Refresh / Content-Opportunity-Scoring study on FlyRank's search &amp; analytics warehouse &middot; <b>Taj Momin</b></p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section id="abstract">
+    <div class="abstract">
+      <h3>Abstract</h3>
+      <p>
+        This paper asks whether a page's future 30-day search-impression decline can be flagged
+        earlier and more reliably than a hand-written editorial rule manages on its own.
+        Using a pseudonymized slice of FlyRank's warehouse (March 2026 features, April 2026
+        outcomes, 101,122 pages across 38 clients), I built a frozen CTR-underperformance rule
+        as a baseline, then trained a logistic regression and a random forest on point-in-time
+        signals, validating both with client-grouped, out-of-fold splits after discovering that a
+        single random split was unstable and that a "freshness" field in the source data was
+        secretly future-dated. The model beat the baseline by roughly 1.4&ndash;1.6&times; the base
+        rate at every cutoff tested; the baseline rule, useful for its original job, turned out to
+        perform <i>below</i> random guessing at this specific one &mdash; a negative result reported
+        here rather than hidden. The output is a ranked, reason-coded action queue an editorial
+        team could use directly this week.
+      </p>
+    </div>
+    <div class="tags">
+      <span class="tag">Lane: Refresh / Content Opportunity Scoring</span>
+      <span class="tag">n = 101,122 pages · 38 clients</span>
+      <span class="tag">Model: Logistic Regression (winner) vs Random Forest</span>
+      <span class="tag">Validation: GroupKFold(5), pooled out-of-fold</span>
+    </div>
+    <p class="toc">
+      <a href="#intro">1. Introduction</a>
+      <a href="#data">2. Data</a>
+      <a href="#method">3. Methodology</a>
+      <a href="#results">4. Results</a>
+      <a href="#limitations">5. Limitations</a>
+      <a href="#recs">6. Ranked Recommendations</a>
+      <a href="#repro">7. Reproducibility</a>
+      <a href="#ack">8. Acknowledgments &amp; Data Credit</a>
+    </p>
+  </section>
+
+  <section id="intro">
+    <h2>1. Introduction</h2>
+    <p>
+      An editorial team reviewing content has limited time and a long list of pages. The
+      question this project asks is narrow on purpose: <b>among a client's already-published,
+      already-visible pages, which ones are most likely to lose a meaningful share of their
+      search impressions over the next 30 days &mdash; and does a simple hand-written rule or a
+      trained model put the real decliners near the top of that list first?</b>
+    </p>
+    <p>
+      This is deliberately framed as a fair rematch, not a foregone conclusion. The Week-4
+      baseline rule in this project was built to catch a different, related problem &mdash;
+      pages with a wide gap between their search position and their click-through rate, worth a
+      snippet or meta-description review. It is a legitimate tool for that job. This paper asks
+      it to do a second job &mdash; forecast decline &mdash; on the same held-out data as the model,
+      and reports the honest answer even where the rule falls short.
+    </p>
+    <p>
+      The decision this supports is concrete: given a ranked queue with reasons attached, which
+      pages get a human look this week, and why. Nothing here claims to know <i>why</i> a page
+      will decline, or that reviewing it will fix anything &mdash; only that some pages carry
+      measurably higher statistical risk than others, going into the next month.
+    </p>
+  </section>
+
+  <section id="data">
+    <h2>2. Data</h2>
+    <p>
+      Data comes from the <code>FlyRank/internship-warehouse</code> release on Hugging Face &mdash;
+      a gated, pseudonymized warehouse (hashed client, content, and query IDs; no real client
+      names, domains, or search queries anywhere). Three tables were used: <code>dim_clients</code>,
+      <code>dim_content</code>, and two monthly partitions of <code>fact_content_daily_performance</code>
+      &mdash; March 2026 as the feature window, April 2026 as the outcome window. The decision point
+      is fixed at the end of March 31, 2026: nothing dated after that may enter a feature.
+    </p>
+    <h3>Exclusions, and why</h3>
+    <ul>
+      <li><b>10 of 104 clients</b> with an incomplete dimension row (<code>access_profile =
+        source_only_missing_client_dimension</code>), a known gap the warehouse's own
+        documentation flags.</li>
+      <li><b>Clients without full March GSC history</b> &mdash; no GSC access, or a
+        <code>gsc_data_start</code> after March 1 &mdash; so "March impressions" means the same
+        thing for every remaining client. 45 of 104 clients passed this bar.</li>
+      <li><b>Content that didn't exist yet, wasn't published, or was deleted</b> as of the
+        decision date &mdash; not a real, reviewable page at decision time.</li>
+      <li><b>Pages under 100 March impressions</b> &mdash; below that floor, a single click swings
+        a percentage-change label enough to be noise, not signal (the same floor the project's
+        starter dataset uses for its own "measurable opportunity" flag).</li>
+      <li><b><code>content_updated_date</code>, <code>word_count</code>, <code>char_count</code></b>
+        &mdash; see Methodology: these are current-state snapshot fields, not safe point-in-time
+        features for a March-dated decision.</li>
+      <li><b><code>provider_used</code>, <code>model_used</code></b> &mdash; the warehouse's own
+        data dictionary marks these "not a model feature."</li>
+    </ul>
+    <p>
+      After every exclusion: <b>310,451</b> content items existed at an eligible client as of the
+      decision date; <b>101,122</b> of those clear the visibility floor and make up the labeled
+      population this paper reports on, spanning <b>38</b> distinct clients.
+    </p>
+  </section>
+
+  <section id="method">
+    <h2>3. Methodology</h2>
+    <h3>Label</h3>
+    <p>
+      <code>is_declining_next30 = 1</code> when April impressions fall more than 20% versus
+      March, for pages at or above the 100-impression floor. This is a genuine future outcome
+      &mdash; features observed through March 31, label determined by what actually happened in
+      April &mdash; not the same-window proxy label (<code>trend_direction</code>) the project's
+      starter dataset ships with.
+    </p>
+
+    <h3>A leakage discovery that changed the feature list</h3>
+    <div class="callout warn">
+      <b>Finding:</b> <code>content_updated_date</code> in <code>dim_content</code> turned out to
+      be a current-state snapshot, not a point-in-time record &mdash; <b>88.3%</b> of eligible
+      content rows carry an update date <i>after</i> the March 31 decision point. A naive
+      "days since last update" feature built from it would leak future editorial activity
+      straight into a March-dated decision. It was excluded, along with <code>word_count</code>
+      and <code>char_count</code> (mutable through the same undated edits) and
+      <code>provider_used</code>/<code>model_used</code> (excluded per the data dictionary's own
+      guidance). The only content-creation field kept, <code>content_created_date</code>, is a
+      one-time, immutable event.
+    </div>
+
+    <h3>Baseline (frozen from the prior stage of this project)</h3>
+    <p>
+      <code class="mono">score = visible(impressions&ge;500) &times; position_ok(0&lt;avg_position&le;20)
+      &times; low_ctr(ctr&lt;0.5%) &times; impressions</code>, producing one reason code and one action
+      label. Its original staleness tie-break term is dropped here &mdash; its only safe source
+      field is the leaky one described above.
+    </p>
+
+    <h3>Model and validation</h3>
+    <p>
+      Logistic regression (primary) and a random forest (comparison), both scored by
+      precision@K &mdash; a ranking metric, since the real task is "who's first in the queue," not
+      a plain yes/no classification. Rows are split <b>grouped by client</b>, since pages from
+      the same client share hidden context a random split would leak across train and test.
+    </p>
+    <div class="callout">
+      <b>A methodological finding worth stating plainly:</b> a single 75/25 grouped split proved
+      unstable &mdash; with only 38 clients of very unequal size, one client alone could make up
+      42% of a test fold. The fix used throughout this paper is <code>GroupKFold(n_splits=5)</code>
+      with <b>pooled out-of-fold predictions</b>: every row is scored only by a model that never
+      saw its client during training, and the final metric pools all five folds rather than
+      trusting one lucky or unlucky split.
+    </div>
+  </section>
+
+  <section id="results">
+    <h2>4. Results</h2>
+    <p>
+      All three methods are scored on the identical out-of-fold population
+      (N&nbsp;=&nbsp;101,122, base rate&nbsp;=&nbsp;0.518) with the identical metric.
+    </p>
+    <figure>
+      <img src="img/precision_at_k.png" alt="Bar chart comparing precision at K=50,100,200,500 for the baseline rule, logistic regression, and random forest, against a red dashed base-rate line.">
+      <figcaption>Precision@K, out-of-fold, grouped by client. The baseline sits below the base
+        rate at every K; logistic regression sits well above it.</figcaption>
+    </figure>
+    <table>
+      <thead><tr><th>K</th><th>Baseline rule</th><th>Logistic regression</th><th>Random forest</th></tr></thead>
+      <tbody>
+        <tr><td>50</td><td>0.400</td><td class="hl">0.820</td><td>0.680</td></tr>
+        <tr><td>100</td><td>0.390</td><td class="hl">0.810</td><td>0.680</td></tr>
+        <tr><td>200</td><td>0.375</td><td class="hl">0.790</td><td>0.695</td></tr>
+        <tr><td>500</td><td>0.392</td><td class="hl">0.728</td><td>0.618</td></tr>
+      </tbody>
+    </table>
+    <p class="rate">Base rate across the full evaluated population: 0.518.</p>
+
+    <p>
+      Logistic regression beats both the baseline and the random forest at every cutoff &mdash;
+      roughly 1.4&ndash;1.6&times; the base rate. The baseline rule falls <i>below</i> the base
+      rate at every K. That is not evidence the rule is broken at its actual job (finding
+      CTR/snippet-fix candidates); it is evidence that "worth a CTR review" and "about to
+      decline" are genuinely different questions, and the rule should not be sold as a decline
+      forecaster.
+    </p>
+
+    <h3>Checking the winning model isn't just measuring mean reversion</h3>
+    <p>
+      High-volume pages mechanically tend to regress toward the mean, so a model leaning heavily
+      on March impression volume could just be capturing that artifact rather than real signal.
+      Removing that single feature and re-running the identical out-of-fold pipeline: precision@50
+      moves from <b>0.820</b> to <b>0.720</b> &mdash; a real, moderate drop, not the collapse toward
+      the base rate that would confess pure mean-reversion. The feature contributes genuine
+      signal.
+    </p>
+
+    <h3>What the model leans on, and where it's wrong</h3>
+    <p>
+      Real engagement &mdash; sessions and clicks &mdash; pushes toward <i>not</i> declining;
+      pageviews moves the other way in the raw coefficients, which is a multicollinearity
+      artifact (these three move together) rather than a contradiction. The single strongest
+      coefficient belongs to <code>content_type = comparison article</code>, and the raw rates
+      back it up:
+    </p>
+    <figure>
+      <img src="img/decline_rate_by_content_type.png" alt="Horizontal bar chart of decline rate by content type: comparison article, feedly article, keyword article, each annotated with sample size n.">
+      <figcaption>Decline rate by content type, with sample size (n) per bar. Comparison and
+        syndicated ("feedly") articles decline notably more often than standard keyword
+        articles &mdash; directional, given the smaller n on the top two bars.</figcaption>
+    </figure>
+    <p>
+      The model's clearest failures are instructive rather than embarrassing. Its false positives
+      are almost all zero-CTR syndicated ("feedly") articles that the model reads as high-risk
+      but that actually grew substantially in April &mdash; a missing interaction between content
+      type and CTR the current feature set doesn't capture. Its false negatives are healthy,
+      well-established pages with strong March click-through that still dropped hard in April,
+      with nothing in their March numbers hinting at what was coming &mdash; a real ceiling on
+      what point-in-time signals can see, not a fixable modeling bug.
+    </p>
+  </section>
+
+  <section id="limitations">
+    <h2>5. Limitations &amp; Honest Framing</h2>
+    <ul>
+      <li><b>Two months, not a full panel.</b> The extract covers exactly one feature month and
+        one outcome month. Results here are <b>observed for this window</b>, not demonstrated to
+        be a stable, permanent property of these pages.</li>
+      <li><b>38 clients, unevenly sized.</b> One client alone can be over 40% of a naive test
+        split. GroupKFold pooling addresses instability, but with this few groups the
+        precision@K numbers are best read as <b>directional</b>, not exact to three decimal
+        places.</li>
+      <li><b>Point-in-time features have a real ceiling</b> &mdash; the false negatives above are
+        proof, not a hedge.</li>
+      <li><b>No causal claim anywhere in this paper.</b> Nothing here says an action taken on a
+        flagged page will cause recovery, or that the model has identified <i>why</i> a page is
+        at risk &mdash; only that it carries elevated statistical risk. Every recommendation below
+        is <b>decision-support</b>, meant to prioritize human review, not to substitute for it.</li>
+      <li><b>The content-type finding is directional.</b> Comparison articles (n=997) and
+        syndicated articles (n=1,040) are much smaller samples than keyword articles
+        (n=99,085); the direction is consistent with the model's own coefficients, but the exact
+        rate could move with more data.</li>
+      <li>No client names, domains, or search queries appear anywhere in this paper, its source
+        notebooks, or its outputs &mdash; by design, per the warehouse's public-safe terms.</li>
+    </ul>
+  </section>
+
+  <section id="recs">
+    <h2>6. Ranked Recommendations</h2>
+    <p>
+      The deployed output is a ranked, reason-coded action queue, built from the out-of-fold
+      model score (a genuine held-out probability &mdash; no page is ever scored by a model that
+      trained on its own client) plus the baseline's independent CTR flag riding alongside it.
+    </p>
+    <table>
+      <thead><tr><th>Action</th><th>Reason code</th><th>Rows</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td>priority_review</td><td>decline_risk_and_ctr_gap</td><td style="text-align:right">3,073</td><td style="text-align:left">Both signals agree &mdash; the strongest case for review</td></tr>
+        <tr><td>priority_review</td><td>decline_risk_only</td><td style="text-align:right">3,761</td><td style="text-align:left">Model-only catch &mdash; the baseline rule would have missed these entirely</td></tr>
+        <tr><td>monitor</td><td>ctr_gap_only</td><td style="text-align:right">38,085</td><td style="text-align:left">Worth a snippet/meta review; not flagged as high decline risk</td></tr>
+        <tr><td>no_action</td><td>no_flag</td><td style="text-align:right">56,203</td><td style="text-align:left">Neither signal fires</td></tr>
+      </tbody>
+    </table>
+    <p>
+      The <code>decline_risk_only</code> row is the headline result made actionable: <b>3,761
+      pages</b> (3.7% of the evaluated population) would have been invisible to the Week-4 rule
+      entirely, and are now in front of a reviewer this week instead of next quarter. The full
+      ranked queue (101,122 rows, one per evaluated page) is generated by
+      <code>work/notebooks/capstone.ipynb</code> and written to
+      <code>work/outputs/capstone_action_playbook.csv</code> on every run &mdash; it is not
+      committed to the repo directly (see Reproducibility), so it always reflects the notebook's
+      current, executed state rather than a stale export.
+    </p>
+  </section>
+
+  <section id="repro">
+    <h2>7. Reproducibility</h2>
+    <p>
+      Every number and chart on this page is generated by
+      <a href="https://github.com/tajmomin/flyrank/blob/main/work/notebooks/capstone.ipynb"><code>work/notebooks/capstone.ipynb</code></a>,
+      executed top to bottom with no manual edits to its outputs. The full weekly build-up lives
+      in the same repo:
+    </p>
+    <ul>
+      <li><code>work/notebooks/w01_research_question.ipynb</code> &mdash; lane selection and question</li>
+      <li><code>work/notebooks/w04_baseline_score.ipynb</code> &mdash; the frozen rule baseline, with its own signal checks</li>
+      <li><code>work/notebooks/w05_model.ipynb</code> &mdash; the model, validation design, and error analysis this paper draws on</li>
+      <li><code>work/notebooks/capstone.ipynb</code> &mdash; the self-contained pipeline behind this page</li>
+      <li><code>work/outputs/*.json</code> &mdash; the metric "receipts" committed alongside each notebook</li>
+    </ul>
+    <p>
+      The notebooks query the warehouse live via DuckDB over <code>hf://</code> when a Hugging
+      Face read token is available, and fall back to a locally cached extract of the same query
+      results otherwise &mdash; so a fresh clone with a valid token reproduces every number here
+      from scratch. Raw and intermediate data files are intentionally excluded from the repository
+      (a CI leak-guard blocks committing dataset files); only the notebooks and their small JSON
+      metric receipts are version-controlled.
+    </p>
+  </section>
+
+  <section id="ack">
+    <h2>8. Acknowledgments &amp; Data Credit</h2>
+    <p>
+      Built on the FlyRank ML Internship dataset. Data and program: <a href="https://flyrank.ai" target="_blank" rel="noopener">flyrank.ai</a>.
+    </p>
+  </section>
+
+</div>
+
+<footer class="foot">
+  <div class="wrap">
+    Repository: <a href="https://github.com/tajmomin/flyrank">github.com/tajmomin/flyrank</a>
+  </div>
+</footer>
+
+</body>
+</html>
