@@ -1,0 +1,33 @@
+{
+  "base_rate": 0.5183046221395937,
+  "n_rows": 101122,
+  "n_clients": 38,
+  "n_folds": 5,
+  "random_state": 42,
+  "precision_at_k": {
+    "50": {
+      "baseline": 0.4,
+      "logreg": 0.82,
+      "random_forest": 0.68
+    },
+    "100": {
+      "baseline": 0.39,
+      "logreg": 0.81,
+      "random_forest": 0.68
+    },
+    "200": {
+      "baseline": 0.375,
+      "logreg": 0.79,
+      "random_forest": 0.695
+    },
+    "500": {
+      "baseline": 0.392,
+      "logreg": 0.728,
+      "random_forest": 0.618
+    }
+  },
+  "leakage_check_p50_with_without_volume": {
+    "with": 0.82,
+    "without": 0.72
+  }
+}
